@@ -58,7 +58,7 @@ class MethodChannelChinaPush extends ChinaPushPlatform {
   }
 
   void notifyClickListener(dynamic data) {
-    print("onNotificationClick:args : $data");
+    debugPrint("onNotificationClick:args : $data");
     if (data != null && data is String && data.isNotEmpty) {
       data = jsonDecode(data);
     }

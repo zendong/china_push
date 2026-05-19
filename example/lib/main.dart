@@ -33,9 +33,9 @@ class _MyAppState extends State<MyApp> {
       setState(() {
         logs.add("init success : $value");
       });
-      print("init success : $value");
+      debugPrint("init success : $value");
     }, onError: (e) {
-      print("${e.error}");
+      debugPrint("${e.error}");
       setState(() {
         logs.add("init fail : ${e.error}");
       });
@@ -43,14 +43,14 @@ class _MyAppState extends State<MyApp> {
 
     // 建议在路由初始化后的首个界面设置回调
     ChinaPush.setOnClickNotification((dynamic value) {
-      print("onClickNotification : value : $value");
+      debugPrint("onClickNotification : value : $value");
       setState(() {
         logs.add("onClickNotification : value : $value");
       });
     });
 
     ChinaPush.getRegId().then((value) {
-      print("regId:$value");
+      debugPrint("regId:$value");
     });
 
     initPlatformState();
@@ -83,7 +83,7 @@ class _MyAppState extends State<MyApp> {
     return MaterialApp(
       home: Scaffold(
         appBar: AppBar(
-          title: const Text('Plugin example app'),
+          title: Text('Plugin example app $_platformVersion'),
           actions: [
             CupertinoButton(
                 child: const Text("getReg"),

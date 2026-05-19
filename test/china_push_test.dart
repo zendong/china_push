@@ -41,6 +41,8 @@ class MockChinaPushPlatform
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   final ChinaPushPlatform initialPlatform = ChinaPushPlatform.instance;
 
   test('$MethodChannelChinaPush is the default instance', () {

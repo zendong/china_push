@@ -43,18 +43,25 @@ public class ChinaPushPlugin: NSObject,  FlutterPlugin,UNUserNotificationCenterD
       }
 
       private func initPush(result: @escaping FlutterResult) {
-          self.result = result;
+          self.result = result
+          let notificationCenter = UNUserNotificationCenter.current()
+          notificationCenter.delegate = self
 
-          guard UNUserNotificationCenter.current().delegate != nil else {
-              print("Init Fail delegate is nil")
-              result(FlutterError(code: "10086", message: "Init Fail delegate is nil", details: nil))
-              self.result = nil;
-              return
+          notificationCenter.requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
+              if let error = error {
+                  DispatchQueue.main.async {
+                      Logger.log("requestAuthorization failed: \(error.localizedDescription)")
+                      result(FlutterError(code: "10086", message: error.localizedDescription, details: nil))
+                      self.result = nil
+                  }
+                  return
+              }
+
+              Logger.log("requestAuthorization granted: \(granted)")
+              DispatchQueue.main.async {
+                  UIApplication.shared.registerForRemoteNotifications()
+              }
           }
-
-          // 注册远程通知
-          UIApplication.shared.registerForRemoteNotifications()
-
       }
 
       public func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [AnyHashable : Any] = [:]) -> Bool {
@@ -78,6 +85,13 @@ public class ChinaPushPlugin: NSObject,  FlutterPlugin,UNUserNotificationCenterD
           self.regId = deviceTokenString
           Logger.log("onResister Success")
           result?(["regId":regId,"manufacturer":"APPLE"])
+          result = nil
+      }
+
+      public func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+          Logger.log("onRegister Failed: \(error.localizedDescription)")
+          result?(FlutterError(code: "10087", message: error.localizedDescription, details: nil))
+          result = nil
       }
 
 
@@ -96,7 +110,6 @@ public class ChinaPushPlugin: NSObject,  FlutterPlugin,UNUserNotificationCenterD
               return
           }
 
-          _ = FlutterApnsSerialization.remoteMessageUserInfoToDict(userInfo)
           completionHandler([.alert, .sound])
       }
 
@@ -107,16 +120,22 @@ public class ChinaPushPlugin: NSObject,  FlutterPlugin,UNUserNotificationCenterD
           }
 
           userInfo["actionIdentifier"] = response.actionIdentifier
-          _ = FlutterApnsSerialization.remoteMessageUserInfoToDict(userInfo)
+          let serializedUserInfo = FlutterApnsSerialization.remoteMessageUserInfoToDict(userInfo)
 
-          onMessage(userInfo: userInfo)
+          onMessage(userInfo: serializedUserInfo)
           completionHandler()
       }
 
 
-      private func onMessage(userInfo: [AnyHashable: Any]) {
+      private func onMessage(userInfo: [String: Any]) {
           Logger.log("onMessage")
-          channel?.invokeMethod("onNotificationClick", arguments: ((userInfo["aps"] as? [String: Any])?["attributes"] as? [String: Any])?["data"] as? String ?? nil)
+          if let data = ((userInfo["aps"] as? [String: Any])?["attributes"] as? [String: Any])?["data"] as? String {
+              channel?.invokeMethod("onNotificationClick", arguments: data)
+              return
+          }
+          var payload = userInfo
+          payload.removeValue(forKey: "aps")
+          channel?.invokeMethod("onNotificationClick", arguments: payload)
       }
 
   }
